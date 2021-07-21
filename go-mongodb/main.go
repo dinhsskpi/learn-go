@@ -13,12 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type album struct {
-	Title  string  `json:"title"`
-	Artist string  `json:"artist"`
-	Price  float64 `json:"price"`
-}
-
 func getAlbums(c *gin.Context) {
 	db, ctx := ConnectDB()
 	cursor, err := db.Collection("albums").Find(ctx, bson.D{})
@@ -96,7 +90,7 @@ func ConnectDB() (*mongo.Database, context.Context) {
 		log.Fatal(err)
 	}
 
-	db := client.Database("demo")
+	db := client.Database("sample_db")
 	return db, ctx
 }
 
