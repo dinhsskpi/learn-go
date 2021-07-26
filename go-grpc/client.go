@@ -23,12 +23,11 @@ func main() {
 	}
 	defer conn.Close()
 	client := helloworld.NewGreeterServiceClient(conn)
-	CallSayHello(client)
-	CallSayHelloAgain(client)
-	CallStreamData(client)
+	// UnaryGrpc(client)
+	ResponseStreamData(client)
 }
 
-func CallSayHello(client helloworld.GreeterServiceClient) {
+func UnaryGrpc(client helloworld.GreeterServiceClient) {
 	r, err := client.SayHello(context.Background(), &helloworld.HelloRequest{Name: defaultName})
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
@@ -36,16 +35,8 @@ func CallSayHello(client helloworld.GreeterServiceClient) {
 	log.Printf("Greeting: %s", r.GetMessage())
 }
 
-func CallSayHelloAgain(client helloworld.GreeterServiceClient) {
-	r, err := client.SayHelloAgain(context.Background(), &helloworld.HelloRequest{Name: defaultName})
-	if err != nil {
-		log.Fatalf("could not greet: %v", err)
-	}
-	log.Printf("GreetingAgain: %s", r.GetMessage())
-}
-
-func CallStreamData(client helloworld.GreeterServiceClient) {
-	stream, err3 := client.StreamData(context.Background(), &helloworld.HelloStreamRequest{Number: 100})
+func ResponseStreamData(client helloworld.GreeterServiceClient) {
+	stream, err3 := client.ResponseStreamData(context.Background(), &helloworld.HelloStreamRequest{Number: 0})
 	if err3 != nil {
 		log.Fatalf("could not greet: %v", err3)
 	}
