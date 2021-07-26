@@ -20,7 +20,7 @@ const _ = grpc.SupportPackageIsVersion7
 type GreeterServiceClient interface {
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
 	SayHelloAgain(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
-	ResponseStreamData(ctx context.Context, in *HelloStreamRequest, opts ...grpc.CallOption) (GreeterService_ResponseStreamDataClient, error)
+	ResponseStreamData(ctx context.Context, in *ResponseStreamRequest, opts ...grpc.CallOption) (GreeterService_ResponseStreamDataClient, error)
 }
 
 type greeterServiceClient struct {
@@ -49,7 +49,7 @@ func (c *greeterServiceClient) SayHelloAgain(ctx context.Context, in *HelloReque
 	return out, nil
 }
 
-func (c *greeterServiceClient) ResponseStreamData(ctx context.Context, in *HelloStreamRequest, opts ...grpc.CallOption) (GreeterService_ResponseStreamDataClient, error) {
+func (c *greeterServiceClient) ResponseStreamData(ctx context.Context, in *ResponseStreamRequest, opts ...grpc.CallOption) (GreeterService_ResponseStreamDataClient, error) {
 	stream, err := c.cc.NewStream(ctx, &GreeterService_ServiceDesc.Streams[0], "/helloworld.GreeterService/ResponseStreamData", opts...)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (c *greeterServiceClient) ResponseStreamData(ctx context.Context, in *Hello
 }
 
 type GreeterService_ResponseStreamDataClient interface {
-	Recv() (*HelloStreamReply, error)
+	Recv() (*ResponseStreamReply, error)
 	grpc.ClientStream
 }
 
@@ -73,8 +73,8 @@ type greeterServiceResponseStreamDataClient struct {
 	grpc.ClientStream
 }
 
-func (x *greeterServiceResponseStreamDataClient) Recv() (*HelloStreamReply, error) {
-	m := new(HelloStreamReply)
+func (x *greeterServiceResponseStreamDataClient) Recv() (*ResponseStreamReply, error) {
+	m := new(ResponseStreamReply)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (x *greeterServiceResponseStreamDataClient) Recv() (*HelloStreamReply, erro
 type GreeterServiceServer interface {
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
 	SayHelloAgain(context.Context, *HelloRequest) (*HelloReply, error)
-	ResponseStreamData(*HelloStreamRequest, GreeterService_ResponseStreamDataServer) error
+	ResponseStreamData(*ResponseStreamRequest, GreeterService_ResponseStreamDataServer) error
 	mustEmbedUnimplementedGreeterServiceServer()
 }
 
@@ -101,7 +101,7 @@ func (UnimplementedGreeterServiceServer) SayHello(context.Context, *HelloRequest
 func (UnimplementedGreeterServiceServer) SayHelloAgain(context.Context, *HelloRequest) (*HelloReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHelloAgain not implemented")
 }
-func (UnimplementedGreeterServiceServer) ResponseStreamData(*HelloStreamRequest, GreeterService_ResponseStreamDataServer) error {
+func (UnimplementedGreeterServiceServer) ResponseStreamData(*ResponseStreamRequest, GreeterService_ResponseStreamDataServer) error {
 	return status.Errorf(codes.Unimplemented, "method ResponseStreamData not implemented")
 }
 func (UnimplementedGreeterServiceServer) mustEmbedUnimplementedGreeterServiceServer() {}
@@ -154,7 +154,7 @@ func _GreeterService_SayHelloAgain_Handler(srv interface{}, ctx context.Context,
 }
 
 func _GreeterService_ResponseStreamData_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(HelloStreamRequest)
+	m := new(ResponseStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func _GreeterService_ResponseStreamData_Handler(srv interface{}, stream grpc.Ser
 }
 
 type GreeterService_ResponseStreamDataServer interface {
-	Send(*HelloStreamReply) error
+	Send(*ResponseStreamReply) error
 	grpc.ServerStream
 }
 
@@ -170,7 +170,7 @@ type greeterServiceResponseStreamDataServer struct {
 	grpc.ServerStream
 }
 
-func (x *greeterServiceResponseStreamDataServer) Send(m *HelloStreamReply) error {
+func (x *greeterServiceResponseStreamDataServer) Send(m *ResponseStreamReply) error {
 	return x.ServerStream.SendMsg(m)
 }
 
