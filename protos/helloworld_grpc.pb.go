@@ -18,9 +18,13 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GreeterServiceClient interface {
+	// 1 request and 1 response
 	SayHello(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
 	SayHelloAgain(ctx context.Context, in *HelloRequest, opts ...grpc.CallOption) (*HelloReply, error)
-	ResponseStreamData(ctx context.Context, in *ResponseStreamRequest, opts ...grpc.CallOption) (GreeterService_ResponseStreamDataClient, error)
+	// 1 request and nhiều response
+	ServerStreamData(ctx context.Context, in *ServerStreamRequest, opts ...grpc.CallOption) (GreeterService_ServerStreamDataClient, error)
+	// 1 response and nhiều request
+	ClientStreamData(ctx context.Context, opts ...grpc.CallOption) (GreeterService_ClientStreamDataClient, error)
 }
 
 type greeterServiceClient struct {
@@ -49,12 +53,12 @@ func (c *greeterServiceClient) SayHelloAgain(ctx context.Context, in *HelloReque
 	return out, nil
 }
 
-func (c *greeterServiceClient) ResponseStreamData(ctx context.Context, in *ResponseStreamRequest, opts ...grpc.CallOption) (GreeterService_ResponseStreamDataClient, error) {
-	stream, err := c.cc.NewStream(ctx, &GreeterService_ServiceDesc.Streams[0], "/helloworld.GreeterService/ResponseStreamData", opts...)
+func (c *greeterServiceClient) ServerStreamData(ctx context.Context, in *ServerStreamRequest, opts ...grpc.CallOption) (GreeterService_ServerStreamDataClient, error) {
+	stream, err := c.cc.NewStream(ctx, &GreeterService_ServiceDesc.Streams[0], "/helloworld.GreeterService/ServerStreamData", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &greeterServiceResponseStreamDataClient{stream}
+	x := &greeterServiceServerStreamDataClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -64,17 +68,51 @@ func (c *greeterServiceClient) ResponseStreamData(ctx context.Context, in *Respo
 	return x, nil
 }
 
-type GreeterService_ResponseStreamDataClient interface {
-	Recv() (*ResponseStreamReply, error)
+type GreeterService_ServerStreamDataClient interface {
+	Recv() (*ServerStreamReply, error)
 	grpc.ClientStream
 }
 
-type greeterServiceResponseStreamDataClient struct {
+type greeterServiceServerStreamDataClient struct {
 	grpc.ClientStream
 }
 
-func (x *greeterServiceResponseStreamDataClient) Recv() (*ResponseStreamReply, error) {
-	m := new(ResponseStreamReply)
+func (x *greeterServiceServerStreamDataClient) Recv() (*ServerStreamReply, error) {
+	m := new(ServerStreamReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *greeterServiceClient) ClientStreamData(ctx context.Context, opts ...grpc.CallOption) (GreeterService_ClientStreamDataClient, error) {
+	stream, err := c.cc.NewStream(ctx, &GreeterService_ServiceDesc.Streams[1], "/helloworld.GreeterService/ClientStreamData", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &greeterServiceClientStreamDataClient{stream}
+	return x, nil
+}
+
+type GreeterService_ClientStreamDataClient interface {
+	Send(*ClientStreamRequest) error
+	CloseAndRecv() (*ClientStreamReply, error)
+	grpc.ClientStream
+}
+
+type greeterServiceClientStreamDataClient struct {
+	grpc.ClientStream
+}
+
+func (x *greeterServiceClientStreamDataClient) Send(m *ClientStreamRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *greeterServiceClientStreamDataClient) CloseAndRecv() (*ClientStreamReply, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(ClientStreamReply)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -85,9 +123,13 @@ func (x *greeterServiceResponseStreamDataClient) Recv() (*ResponseStreamReply, e
 // All implementations must embed UnimplementedGreeterServiceServer
 // for forward compatibility
 type GreeterServiceServer interface {
+	// 1 request and 1 response
 	SayHello(context.Context, *HelloRequest) (*HelloReply, error)
 	SayHelloAgain(context.Context, *HelloRequest) (*HelloReply, error)
-	ResponseStreamData(*ResponseStreamRequest, GreeterService_ResponseStreamDataServer) error
+	// 1 request and nhiều response
+	ServerStreamData(*ServerStreamRequest, GreeterService_ServerStreamDataServer) error
+	// 1 response and nhiều request
+	ClientStreamData(GreeterService_ClientStreamDataServer) error
 	mustEmbedUnimplementedGreeterServiceServer()
 }
 
@@ -101,8 +143,11 @@ func (UnimplementedGreeterServiceServer) SayHello(context.Context, *HelloRequest
 func (UnimplementedGreeterServiceServer) SayHelloAgain(context.Context, *HelloRequest) (*HelloReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SayHelloAgain not implemented")
 }
-func (UnimplementedGreeterServiceServer) ResponseStreamData(*ResponseStreamRequest, GreeterService_ResponseStreamDataServer) error {
-	return status.Errorf(codes.Unimplemented, "method ResponseStreamData not implemented")
+func (UnimplementedGreeterServiceServer) ServerStreamData(*ServerStreamRequest, GreeterService_ServerStreamDataServer) error {
+	return status.Errorf(codes.Unimplemented, "method ServerStreamData not implemented")
+}
+func (UnimplementedGreeterServiceServer) ClientStreamData(GreeterService_ClientStreamDataServer) error {
+	return status.Errorf(codes.Unimplemented, "method ClientStreamData not implemented")
 }
 func (UnimplementedGreeterServiceServer) mustEmbedUnimplementedGreeterServiceServer() {}
 
@@ -153,25 +198,51 @@ func _GreeterService_SayHelloAgain_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _GreeterService_ResponseStreamData_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(ResponseStreamRequest)
+func _GreeterService_ServerStreamData_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ServerStreamRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(GreeterServiceServer).ResponseStreamData(m, &greeterServiceResponseStreamDataServer{stream})
+	return srv.(GreeterServiceServer).ServerStreamData(m, &greeterServiceServerStreamDataServer{stream})
 }
 
-type GreeterService_ResponseStreamDataServer interface {
-	Send(*ResponseStreamReply) error
+type GreeterService_ServerStreamDataServer interface {
+	Send(*ServerStreamReply) error
 	grpc.ServerStream
 }
 
-type greeterServiceResponseStreamDataServer struct {
+type greeterServiceServerStreamDataServer struct {
 	grpc.ServerStream
 }
 
-func (x *greeterServiceResponseStreamDataServer) Send(m *ResponseStreamReply) error {
+func (x *greeterServiceServerStreamDataServer) Send(m *ServerStreamReply) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _GreeterService_ClientStreamData_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(GreeterServiceServer).ClientStreamData(&greeterServiceClientStreamDataServer{stream})
+}
+
+type GreeterService_ClientStreamDataServer interface {
+	SendAndClose(*ClientStreamReply) error
+	Recv() (*ClientStreamRequest, error)
+	grpc.ServerStream
+}
+
+type greeterServiceClientStreamDataServer struct {
+	grpc.ServerStream
+}
+
+func (x *greeterServiceClientStreamDataServer) SendAndClose(m *ClientStreamReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *greeterServiceClientStreamDataServer) Recv() (*ClientStreamRequest, error) {
+	m := new(ClientStreamRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // GreeterService_ServiceDesc is the grpc.ServiceDesc for GreeterService service.
@@ -192,9 +263,14 @@ var GreeterService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "ResponseStreamData",
-			Handler:       _GreeterService_ResponseStreamData_Handler,
+			StreamName:    "ServerStreamData",
+			Handler:       _GreeterService_ServerStreamData_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "ClientStreamData",
+			Handler:       _GreeterService_ClientStreamData_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "helloworld.proto",

@@ -5,9 +5,13 @@ package helloworld;
 option go_package = "protos/helloworld";
 
 service GreeterService {
+    // 1 request and 1 response
     rpc SayHello (HelloRequest) returns (HelloReply) {}
     rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
-    rpc ResponseStreamData (ResponseStreamRequest) returns (stream ResponseStreamReply) {}
+    // 1 request and nhiều response
+    rpc ServerStreamData (ServerStreamRequest) returns (stream ServerStreamReply) {}
+    // 1 response and nhiều request
+    rpc ClientStreamData (stream ClientStreamRequest) returns (ClientStreamReply) {}
 }
 
 message HelloRequest {
@@ -18,10 +22,18 @@ message HelloReply {
     string message = 1;
 }
 
-message ResponseStreamRequest {
+message ServerStreamRequest {
     int32 number = 1;
 }
 
-message ResponseStreamReply {
+message ServerStreamReply {
     int32 message = 1;
+}
+
+message ClientStreamRequest {
+    float number = 1;
+}
+
+message ClientStreamReply {
+    float total = 1;
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 
@@ -24,7 +25,8 @@ func main() {
 	defer conn.Close()
 	client := helloworld.NewGreeterServiceClient(conn)
 	// UnaryGrpc(client)
-	ResponseStreamData(client)
+	ServerStreamData(client)
+	//ClientStreamData(client)
 }
 
 func UnaryGrpc(client helloworld.GreeterServiceClient) {
@@ -35,8 +37,8 @@ func UnaryGrpc(client helloworld.GreeterServiceClient) {
 	log.Printf("Greeting: %s", r.GetMessage())
 }
 
-func ResponseStreamData(client helloworld.GreeterServiceClient) {
-	stream, err3 := client.ResponseStreamData(context.Background(), &helloworld.ResponseStreamRequest{Number: 0})
+func ServerStreamData(client helloworld.GreeterServiceClient) {
+	stream, err3 := client.ServerStreamData(context.Background(), &helloworld.ServerStreamRequest{Number: 0})
 	if err3 != nil {
 		log.Fatalf("could not greet: %v", err3)
 	}
@@ -55,4 +57,34 @@ func ResponseStreamData(client helloworld.GreeterServiceClient) {
 
 		log.Println("Data stream:", response.GetMessage())
 	}
+}
+
+func ClientStreamData(client helloworld.GreeterServiceClient) {
+	// ví dụ:
+	// gửi các số dương liên tục lên server và server sẽ trả về tổng của các số
+	stream, err3 := client.ClientStreamData(context.Background())
+	if err3 != nil {
+		log.Fatalf("error: %v", err3)
+	}
+
+	listReq := []helloworld.ClientStreamRequest{}
+
+	for i := 0; i < 10; i++ {
+		listReq = append(listReq, helloworld.ClientStreamRequest{Number: float32(i)})
+	}
+
+	for _, req := range listReq {
+		errorSend := stream.Send(&req)
+		if errorSend != nil {
+			log.Fatalf("error send: %v", err3)
+		}
+	}
+
+	response, errorCloseAndRecv := stream.CloseAndRecv()
+	if errorCloseAndRecv != nil {
+		log.Fatalf("error CloseAndRecv: %v", errorCloseAndRecv)
+	}
+
+	fmt.Println("Total: ", response.GetTotal())
+
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -20,17 +21,17 @@ type server struct {
 }
 
 func (s *server) SayHello(ctx context.Context, in *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	log.Printf("Received SayHello: %v", in.GetName())
+	log.Printf("SayHello called: %v", in.GetName())
 	return &helloworld.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
 func (s *server) SayHelloAgain(ctx context.Context, in *helloworld.HelloRequest) (*helloworld.HelloReply, error) {
-	log.Printf("Received SayHelloAgain: %v", in.GetName())
+	log.Printf("SayHelloAgain called: %v", in.GetName())
 	return &helloworld.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func (s *server) ResponseStreamData(in *helloworld.ResponseStreamRequest, stream helloworld.GreeterService_ResponseStreamDataServer) error {
-	log.Printf("Received StreamData:")
+func (s *server) ServerStreamData(in *helloworld.ServerStreamRequest, stream helloworld.GreeterService_ServerStreamDataServer) error {
+	log.Printf("ServerStreamData called:")
 
 	k := int32(2)
 	N := in.GetNumber()
@@ -38,7 +39,7 @@ func (s *server) ResponseStreamData(in *helloworld.ResponseStreamRequest, stream
 		if N%k == 0 {
 			N = N + 10
 			//send to client
-			stream.Send(&helloworld.ResponseStreamReply{
+			stream.Send(&helloworld.ServerStreamReply{
 				Message: N,
 			})
 			time.Sleep(1000 * time.Millisecond)
@@ -48,6 +49,30 @@ func (s *server) ResponseStreamData(in *helloworld.ResponseStreamRequest, stream
 		}
 	}
 	return nil
+}
+
+func (*server) ClientStreamData(stream helloworld.GreeterService_ClientStreamDataServer) error {
+	log.Printf("ClientStreamData called:")
+	var total float32
+
+	for {
+		request, error := stream.Recv()
+
+		// khi client đã gửi xong thì trả về tổng của các số
+		if error == io.EOF {
+			rsp := &helloworld.ClientStreamReply{Total: total}
+			time.Sleep(2 * time.Second)
+			return stream.SendAndClose(rsp)
+		}
+
+		if error != nil {
+			log.Fatalf("error: %v", error)
+		}
+
+		log.Printf("Number from request: %v", request.GetNumber())
+		total += request.GetNumber()
+	}
+
 }
 
 func main() {
