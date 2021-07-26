@@ -36,7 +36,7 @@ func UnaryGrpc(client helloworld.GreeterServiceClient) {
 }
 
 func ResponseStreamData(client helloworld.GreeterServiceClient) {
-	stream, err3 := client.ResponseStreamData(context.Background(), &helloworld.HelloStreamRequest{Number: 0})
+	stream, err3 := client.ResponseStreamData(context.Background(), &helloworld.ResponseStreamRequest{Number: 0})
 	if err3 != nil {
 		log.Fatalf("could not greet: %v", err3)
 	}

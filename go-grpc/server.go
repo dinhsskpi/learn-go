@@ -29,7 +29,7 @@ func (s *server) SayHelloAgain(ctx context.Context, in *helloworld.HelloRequest)
 	return &helloworld.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func (s *server) ResponseStreamData(in *helloworld.HelloStreamRequest, stream helloworld.GreeterService_ResponseStreamDataServer) error {
+func (s *server) ResponseStreamData(in *helloworld.ResponseStreamRequest, stream helloworld.GreeterService_ResponseStreamDataServer) error {
 	log.Printf("Received StreamData:")
 
 	k := int32(2)
@@ -38,7 +38,7 @@ func (s *server) ResponseStreamData(in *helloworld.HelloStreamRequest, stream he
 		if N%k == 0 {
 			N = N + 10
 			//send to client
-			stream.Send(&helloworld.HelloStreamReply{
+			stream.Send(&helloworld.ResponseStreamReply{
 				Message: N,
 			})
 			time.Sleep(1000 * time.Millisecond)
