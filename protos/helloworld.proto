@@ -5,13 +5,19 @@ package helloworld;
 option go_package = "protos/helloworld";
 
 service GreeterService {
+    
     // 1 request and 1 response
     rpc SayHello (HelloRequest) returns (HelloReply) {}
     rpc SayHelloAgain (HelloRequest) returns (HelloReply) {}
+
     // 1 request and nhiều response
     rpc ServerStreamData (ServerStreamRequest) returns (stream ServerStreamReply) {}
+
     // 1 response and nhiều request
     rpc ClientStreamData (stream ClientStreamRequest) returns (ClientStreamReply) {}
+
+    // 2 chiều song song(nhiều request và nhiều response)
+    rpc BidirectionalStream(stream BidirectionalStreamRequest) returns (stream BidirectionalStreamReply) {}
 }
 
 message HelloRequest {
@@ -36,4 +42,12 @@ message ClientStreamRequest {
 
 message ClientStreamReply {
     float total = 1;
+}
+
+message BidirectionalStreamRequest {
+    float number = 1;
+}
+
+message BidirectionalStreamReply {
+    float max = 1;
 }

@@ -25,6 +25,8 @@ type GreeterServiceClient interface {
 	ServerStreamData(ctx context.Context, in *ServerStreamRequest, opts ...grpc.CallOption) (GreeterService_ServerStreamDataClient, error)
 	// 1 response and nhiều request
 	ClientStreamData(ctx context.Context, opts ...grpc.CallOption) (GreeterService_ClientStreamDataClient, error)
+	// 2 chiều song song(nhiều request và nhiều response)
+	BidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (GreeterService_BidirectionalStreamClient, error)
 }
 
 type greeterServiceClient struct {
@@ -119,6 +121,37 @@ func (x *greeterServiceClientStreamDataClient) CloseAndRecv() (*ClientStreamRepl
 	return m, nil
 }
 
+func (c *greeterServiceClient) BidirectionalStream(ctx context.Context, opts ...grpc.CallOption) (GreeterService_BidirectionalStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &GreeterService_ServiceDesc.Streams[2], "/helloworld.GreeterService/BidirectionalStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &greeterServiceBidirectionalStreamClient{stream}
+	return x, nil
+}
+
+type GreeterService_BidirectionalStreamClient interface {
+	Send(*BidirectionalStreamRequest) error
+	Recv() (*BidirectionalStreamReply, error)
+	grpc.ClientStream
+}
+
+type greeterServiceBidirectionalStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *greeterServiceBidirectionalStreamClient) Send(m *BidirectionalStreamRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *greeterServiceBidirectionalStreamClient) Recv() (*BidirectionalStreamReply, error) {
+	m := new(BidirectionalStreamReply)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // GreeterServiceServer is the server API for GreeterService service.
 // All implementations must embed UnimplementedGreeterServiceServer
 // for forward compatibility
@@ -130,6 +163,8 @@ type GreeterServiceServer interface {
 	ServerStreamData(*ServerStreamRequest, GreeterService_ServerStreamDataServer) error
 	// 1 response and nhiều request
 	ClientStreamData(GreeterService_ClientStreamDataServer) error
+	// 2 chiều song song(nhiều request và nhiều response)
+	BidirectionalStream(GreeterService_BidirectionalStreamServer) error
 	mustEmbedUnimplementedGreeterServiceServer()
 }
 
@@ -148,6 +183,9 @@ func (UnimplementedGreeterServiceServer) ServerStreamData(*ServerStreamRequest, 
 }
 func (UnimplementedGreeterServiceServer) ClientStreamData(GreeterService_ClientStreamDataServer) error {
 	return status.Errorf(codes.Unimplemented, "method ClientStreamData not implemented")
+}
+func (UnimplementedGreeterServiceServer) BidirectionalStream(GreeterService_BidirectionalStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method BidirectionalStream not implemented")
 }
 func (UnimplementedGreeterServiceServer) mustEmbedUnimplementedGreeterServiceServer() {}
 
@@ -245,6 +283,32 @@ func (x *greeterServiceClientStreamDataServer) Recv() (*ClientStreamRequest, err
 	return m, nil
 }
 
+func _GreeterService_BidirectionalStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(GreeterServiceServer).BidirectionalStream(&greeterServiceBidirectionalStreamServer{stream})
+}
+
+type GreeterService_BidirectionalStreamServer interface {
+	Send(*BidirectionalStreamReply) error
+	Recv() (*BidirectionalStreamRequest, error)
+	grpc.ServerStream
+}
+
+type greeterServiceBidirectionalStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *greeterServiceBidirectionalStreamServer) Send(m *BidirectionalStreamReply) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *greeterServiceBidirectionalStreamServer) Recv() (*BidirectionalStreamRequest, error) {
+	m := new(BidirectionalStreamRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // GreeterService_ServiceDesc is the grpc.ServiceDesc for GreeterService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -270,6 +334,12 @@ var GreeterService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "ClientStreamData",
 			Handler:       _GreeterService_ClientStreamData_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "BidirectionalStream",
+			Handler:       _GreeterService_BidirectionalStream_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},

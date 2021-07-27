@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -73,6 +74,38 @@ func (*server) ClientStreamData(stream helloworld.GreeterService_ClientStreamDat
 		total += request.GetNumber()
 	}
 
+}
+
+func (*server) BidirectionalStream(stream helloworld.GreeterService_BidirectionalStreamServer) error {
+	log.Printf("BidirectionalStream called:")
+	var max float32 = 0
+
+	for {
+		request, error := stream.Recv()
+
+		if error == io.EOF {
+			fmt.Println("Server is finish stream")
+			return nil
+		}
+
+		if error != nil {
+			log.Fatalf("error: %v", error)
+			return error
+		}
+		numberReq := request.GetNumber()
+		log.Printf("Number from request: %v", numberReq)
+
+		if numberReq > max {
+			max = numberReq
+		}
+
+		errorSend := stream.Send(&helloworld.BidirectionalStreamReply{Max: max})
+
+		if errorSend != nil {
+			fmt.Println("error send: %v", errorSend)
+			return errorSend
+		}
+	}
 }
 
 func main() {

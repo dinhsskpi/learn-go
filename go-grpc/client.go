@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	helloworld "protos/helloworld"
 
@@ -25,8 +26,9 @@ func main() {
 	defer conn.Close()
 	client := helloworld.NewGreeterServiceClient(conn)
 	// UnaryGrpc(client)
-	ServerStreamData(client)
+	//ServerStreamData(client)
 	//ClientStreamData(client)
+	BidirectionalStream(client)
 }
 
 func UnaryGrpc(client helloworld.GreeterServiceClient) {
@@ -87,4 +89,72 @@ func ClientStreamData(client helloworld.GreeterServiceClient) {
 
 	fmt.Println("Total: ", response.GetTotal())
 
+}
+
+func BidirectionalStream(client helloworld.GreeterServiceClient) {
+	// ví dụ:
+	// gửi các số dương liên tục lên server
+	// và server sẽ trả về liên tục số lớn nhất trong các số gửi lên
+	stream, err3 := client.BidirectionalStream(context.Background())
+	if err3 != nil {
+		log.Fatalf("error: %v", err3)
+	}
+
+	listReq := []helloworld.BidirectionalStreamRequest{
+		helloworld.BidirectionalStreamRequest{
+			Number: 20,
+		},
+		helloworld.BidirectionalStreamRequest{
+			Number: 30,
+		},
+		helloworld.BidirectionalStreamRequest{
+			Number: 10,
+		},
+		helloworld.BidirectionalStreamRequest{
+			Number: 100,
+		},
+		helloworld.BidirectionalStreamRequest{
+			Number: 50,
+		},
+		helloworld.BidirectionalStreamRequest{
+			Number: 50,
+		},
+		helloworld.BidirectionalStreamRequest{
+			Number: 300,
+		},
+	}
+
+	go func() {
+		for _, req := range listReq {
+			fmt.Println("Sending number:", req.Number)
+			errorSend := stream.Send(&req)
+			if errorSend != nil {
+				log.Fatalf("error send: %v", err3)
+				break
+			}
+			time.Sleep(1000 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+
+	c := make(chan float32)
+	go func() {
+		for {
+			response, errorRecv := stream.Recv()
+			if errorRecv == io.EOF {
+				log.Println("Ending stream Recv from server ...")
+				break
+			}
+			if errorRecv != nil {
+				log.Fatalf("error errorRecv: %v", errorRecv)
+				break
+			}
+			max := response.GetMax()
+			fmt.Println("Max: ", max)
+		}
+
+		close(c)
+	}()
+
+	<-c
 }
